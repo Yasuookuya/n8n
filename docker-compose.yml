@@ -1,0 +1,55 @@
+# =============================================================================
+# n8n + cloudflared — single-container deployment
+#
+# Builds the KiKAIWorks n8n image that bundles the cloudflared binary in the
+# SAME container, then runs cloudflared in the background and n8n in the
+# foreground via docker-entrypoint-with-cloudflared.sh.
+#
+#   Local access : http://localhost:5678
+#   Owner login  : admin@kikaiworks.com  (password set via bcrypt hash below)
+#
+# Usage:
+#   docker compose -f n8n/docker-compose.yml up -d --build
+# =============================================================================
+
+services:
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudflared
+    image: kikaiworks/n8n-cloudflared:latest
+    container_name: kikaiworks_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # --- n8n core ----------------------------------------------------------
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_ENCRYPTION_KEY: ee80bd65ec9e221f5f27d7635e5cca19dbd6cfbdf6cfa659aaf195e923542aad
+      GENERIC_TIMEZONE: Asia/Singapore
+      N8N_RUNNERS_ENABLED: "true"
+
+      # --- Owner account (managed by env) ------------------------------------
+      N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
+      N8N_INSTANCE_OWNER_EMAIL: admin@kikaiworks.com
+      N8N_INSTANCE_OWNER_FIRST_NAME: KiKAI
+      N8N_INSTANCE_OWNER_LAST_NAME: Admin
+      # bcrypt hash of: wiL82Q3F5qk50sv684vZ2c055Cz6z
+      N8N_INSTANCE_OWNER_PASSWORD_HASH: '$2a$10$/vLgzhko0HjLbz2Q.zwZGO534qn9vAWph6r.AhWTgzueoI/zfKoDq'
+
+      # --- Cloudflared (same container) ---------------------------------------
+      CLOUDFLARED_TOKEN: eyJhIjoiYTdlOWQ0NDAzMzc1MDRiYTBiN2NhMzgxMjY1M2FhOWMiLCJ0IjoiYWI0OTI4YzktMjJkMS00MzIwLWEwMGUtM2Y5MjNiMGExYTZiIiwicyI6Ik9EYzRZMlptT0dZdE16TmxNaTAwTmpneUxUazNOV010WkRoaVlXTXlaakV5WVdVMyJ9
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - kikaiworks-net
+
+volumes:
+  n8n_data:
+    name: kikaiworks_n8n_data
+
+networks:
+  kikaiworks-net:
+    external: true

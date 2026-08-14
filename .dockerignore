@@ -4,6 +4,10 @@
 # Ignore everything first
 *
 
+# === KiKAIWorks single-container build (Dockerfile.cloudflared) ===
+!Dockerfile.cloudflared
+!docker-entrypoint-with-cloudflared.sh
+
 # === n8n main image (docker/images/n8n/Dockerfile) ===
 !compiled
 !compiled/**

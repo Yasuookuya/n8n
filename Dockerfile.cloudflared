@@ -1,0 +1,32 @@
+# =============================================================================
+# n8n + cloudflared — single-container deployment
+#
+# The official n8n image is a hardened Alpine (no package manager), so we
+# download the static cloudflared binary and install it alongside n8n.
+#
+# Note: the checkout-level Dockerfile (./Dockerfile) is used by the n8n
+# project itself. This file is the KiKAIWorks single-container variant.
+# =============================================================================
+FROM n8nio/n8n:latest
+
+USER root
+
+# cloudflared static binary — run as the node user, no extra deps needed
+ADD https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 /usr/local/bin/cloudflared
+
+RUN chmod +x /usr/local/bin/cloudflared && \
+    mkdir -p /home/node/.cloudflared && \
+    chown -R node:node /home/node/.cloudflared && \
+    echo "cloudflared: $(/usr/local/bin/cloudflared --version 2>&1 | head -1)" && \
+    echo "n8n: $(n8n --version 2>&1 | head -1)"
+
+# Add the combined entrypoint that starts cloudflared + n8n
+COPY docker-entrypoint-with-cloudflared.sh /docker-entrypoint-with-cloudflared.sh
+RUN chmod +x /docker-entrypoint-with-cloudflared.sh
+
+# Back to the n8n runtime user
+USER node
+
+EXPOSE 5678/tcp
+
+ENTRYPOINT ["tini", "--", "/docker-entrypoint-with-cloudflared.sh"]
